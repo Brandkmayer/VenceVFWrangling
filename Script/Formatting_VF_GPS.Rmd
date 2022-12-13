@@ -7,5 +7,102 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(sf)
+library("rnaturalearth")
+library("rnaturalearthdata")
+library(smoothr)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+```
+
+```{r}
+# Enter base path where folders containing RAW and processed are located
+path <- paste(dirname(path.expand('~')),"/Box/1.Ruyle_lab/1.Project_Data/Virtual Fencing/", sep="")
+
+# Identify files that need to be processed
+filelist <-list.files(paste0(path,"RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","")
+endlist <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),pattern = ".csv"),".csv","")
+NeedProcessing <- setdiff(filenames,endlist)
+if (length(endlist)>0) {
+  filelist <- filelist[grepl(paste(NeedProcessing, collapse = "|"), filenames)]
+}
+
+# Load in relevant data associated with the virtual fence
+VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv")))
+for (i in 1:length(filelist)) {
+  x <- read.table( filelist[i], sep=",", header=TRUE)
+  x$Fence <- stringr::str_remove(basename(filelist[i]),".txt")
+  x <- x %>% left_join(VAP,by = "Fence")
+  write.csv(x, file = paste0(stringr::str_replace(paste0(path,"ProcessedFences/",basename(filelist[i])),".txt",".csv")),row.names = F)
+}
+(endlist <- list.files(paste0(path,"ProcessedFences"),pattern = ".csv", full.names = T, all.files = TRUE, recursive = TRUE) %>%
+  lapply(function(x) {read.csv(x)}))
+```
+
+```{r}
+for (i in 1:length(endlist)) {
+  
+
+test <- endlist[[48]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
+
+FencePoints<- st_as_sf(test, coords = c("longitude", "latitude"), 
+    crs = 4326)
+FencePoints <- FencePoints%>% group_by(Fgroup) %>% group_split()
+
+Fullfence <- list();FullBufferSh <- list();FullBufferSo <- list()
+
+for (i in 1:length(FencePoints)) {
+
+# lapply(list, function)
+points <- st_cast(st_geometry(FencePoints[[i]]), "POINT") 
+# Number of total linestrings to be created
+n <- length(points) - 1
+# Build linestrings
+linestrings <- lapply(X = 1:n, FUN = function(x) {
+
+  pair <- st_combine(c(points[x], points[x + 1]))
+  line <- st_cast(pair, "LINESTRING")
+  return(line)
+
+})
+
+# One MULTILINESTRING object with all the LINESTRINGS
+multilinetring <- st_multilinestring(do.call("rbind", linestrings))
+multilinetring <- st_sfc(multilinetring,crs = 4326)
+Fullfence[i] <- multilinetring
+# one linestringsbuffers object with all buffers
+bufferrawSh <- st_buffer(multilinetring,
+                       dist = unique(test$Shock))
+bufferrawSo <- st_buffer(multilinetring,
+                       dist = unique(test$Shock)+unique(test$Sound))
+bufferSh <- smooth(bufferrawSh, method = "ksmooth", smoothness = 6,)
+bufferSo <- smooth(bufferrawSo, method = "ksmooth", smoothness = 6,)
+
+FullBufferSh[i] <-bufferSh;FullBufferSo[i] <-bufferSo
+}
+# # Calculate the maximum of nearest neighbor distances (in km)
+# buffer <- rep(40,length(multilinetring))
+
+# Create a polygon = MCP + buffer
+#sf_use_s2(T)
+
+FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
+FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
+
+FullFenceShape<- st_as_sf(endlist[[48]], coords = c("longitude", "latitude"), 
+    crs = 4326) %>% st_cast("POINT")%>% st_combine()%>% st_cast("POLYGON")
+FulllinestringsbuffersSo <-st_difference(FulllinestringsbuffersSo,FulllinestringsbuffersSh)
+FinalVFSo<- st_intersection(FulllinestringsbuffersSo,FullFenceShape)
+FinalVFSh<- st_intersection(FulllinestringsbuffersSh,FullFenceShape)
+st_write(FullFenceShape,paste0("data/my_shapefile",".shp"));st_write(FinalVFSo, "data/my_shapefile.shp");st_write(FinalVFSh, "data/my_shapefile.shp")
+}
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = FullFenceShape)+
+    geom_sf(data = st_sfc(FinalVFSh,crs = 4326)) +
+    geom_sf(data = st_sfc(FinalVFSo,crs = 4326))+
+    coord_sf(xlim = c(-110.8445, -110.88), ylim = c(31.789, 31.806), expand = FALSE)
 
 ```
+
