@@ -23,13 +23,13 @@ path <- paste(dirname(path.expand('~')),"/Box/1.Ruyle_lab/1.Project_Data/Virtual
 # Identify files that need to be processed
 filelist <-list.files(paste0(path,"RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","")
 endlist <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),pattern = ".csv"),".csv","")
-NeedProcessing <- setdiff(filenames,endlist)
-if (length(endlist)>0) {
+VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv")))
+NeedProcessing <- setdiff(VAP$Fence[!is.na(VAP$Off)],endlist);(paste("Listed fences have incomplete `fence off` dates:",VAP$Fence[is.na(VAP$Off)]))
+if (length(NeedProcessing)>0) {
   filelist <- filelist[grepl(paste(NeedProcessing, collapse = "|"), filenames)]
 }
 
 # Load in relevant data associated with the virtual fence
-VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv")))
 for (i in 1:length(filelist)) {
   x <- read.table( filelist[i], sep=",", header=TRUE)
   x$Fence <- stringr::str_remove(basename(filelist[i]),".txt")
@@ -40,17 +40,18 @@ for (i in 1:length(filelist)) {
   lapply(function(x) {read.csv(x)}))
 ```
 
-```{r}
-for (i in 1:length(endlist)) {
-  
-
-test <- endlist[[48]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
+```{r,message=FALSE}
+for (j in 1:length(endlist)) {
+test <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
 
 FencePoints<- st_as_sf(test, coords = c("longitude", "latitude"), 
     crs = 4326)
 FencePoints <- FencePoints%>% group_by(Fgroup) %>% group_split()
 
 Fullfence <- list();FullBufferSh <- list();FullBufferSo <- list()
+
+FullFenceShape<- st_as_sf(endlist[[j]], coords = c("longitude", "latitude"),
+    crs = 4326) %>% st_cast("POINT")%>% st_combine()%>% st_cast("POLYGON")
 
 for (i in 1:length(FencePoints)) {
 
@@ -90,19 +91,23 @@ FullBufferSh[i] <-bufferSh;FullBufferSo[i] <-bufferSo
 FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
 FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
 
-FullFenceShape<- st_as_sf(endlist[[48]], coords = c("longitude", "latitude"), 
-    crs = 4326) %>% st_cast("POINT")%>% st_combine()%>% st_cast("POLYGON")
-FulllinestringsbuffersSo <-st_difference(FulllinestringsbuffersSo,FulllinestringsbuffersSh)
+plot(FulllinestringsbuffersSo)
+
+FulllinestringsbuffersSo <-st_difference( FulllinestringsbuffersSo,FulllinestringsbuffersSh)
 FinalVFSo<- st_intersection(FulllinestringsbuffersSo,FullFenceShape)
 FinalVFSh<- st_intersection(FulllinestringsbuffersSh,FullFenceShape)
-st_write(FullFenceShape,paste0("data/my_shapefile",".shp"));st_write(FinalVFSo, "data/my_shapefile.shp");st_write(FinalVFSh, "data/my_shapefile.shp")
-}
-ggplot(data = world) +
+Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
+st_write(FullFenceShape,paste0(path,"Shapefiles/",Herd,"_",Fence,"_FF.shp"));st_write(FinalVFSo,paste0(path,"Shapefiles/",Herd,"_",Fence,"_Sound.shp"));st_write(FinalVFSh,paste0(path,"Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+print(ggplot(data = world) +
     geom_sf() +
     geom_sf(data = FullFenceShape)+
     geom_sf(data = st_sfc(FinalVFSh,crs = 4326)) +
     geom_sf(data = st_sfc(FinalVFSo,crs = 4326))+
-    coord_sf(xlim = c(-110.8445, -110.88), ylim = c(31.789, 31.806), expand = FALSE)
+coord_sf(xlim = c(max(endlist[[j]]$longitude)+.01, min(endlist[[j]]$longitude)-.01), ylim = c(min(endlist[[j]]$latitude)-.01, max(endlist[[j]]$latitude)+.01), expand = FALSE))
+#readline(prompt="Press [enter] to continue")
+
+}
+
 
 ```
 
