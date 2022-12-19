@@ -43,11 +43,10 @@ for (i in 1:length(filelist)) {
 ```{r,message=FALSE}
 for (j in 1:length(endlist)) {
 test <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
-
+meta <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,Fence, Herd, On, Off) %>% group_by(Fence, Herd, On, Off) %>% summarise()
 FencePoints<- st_as_sf(test, coords = c("longitude", "latitude"), 
     crs = 4326)
 FencePoints <- FencePoints%>% group_by(Fgroup) %>% group_split()
-
 Fullfence <- list();FullBufferSh <- list();FullBufferSo <- list()
 
 FullFenceShape<- st_as_sf(endlist[[j]], coords = c("longitude", "latitude"),
@@ -61,7 +60,6 @@ points <- st_cast(st_geometry(FencePoints[[i]]), "POINT")
 n <- length(points) - 1
 # Build linestrings
 linestrings <- lapply(X = 1:n, FUN = function(x) {
-
   pair <- st_combine(c(points[x], points[x + 1]))
   line <- st_cast(pair, "LINESTRING")
   return(line)
@@ -70,6 +68,7 @@ linestrings <- lapply(X = 1:n, FUN = function(x) {
 
 # One MULTILINESTRING object with all the LINESTRINGS
 multilinetring <- st_multilinestring(do.call("rbind", linestrings))
+as.data.frame(points)
 multilinetring <- st_sfc(multilinetring,crs = 4326)
 Fullfence[i] <- multilinetring
 # one linestringsbuffers object with all buffers
@@ -77,13 +76,16 @@ bufferrawSh <- st_buffer(multilinetring,
                        dist = unique(test$Shock))
 bufferrawSo <- st_buffer(multilinetring,
                        dist = unique(test$Shock)+unique(test$Sound))
-bufferSh <- smooth(bufferrawSh, method = "ksmooth", smoothness = 6,)
-bufferSo <- smooth(bufferrawSo, method = "ksmooth", smoothness = 6,)
+bufferSh <- smooth(bufferrawSh, method = "ksmooth", smoothness = 10,)
+bufferSo <- smooth(bufferrawSo, method = "ksmooth", smoothness = 10,)
 
-FullBufferSh[i] <-bufferSh;FullBufferSo[i] <-bufferSo
+buffersSo <-st_difference(bufferSo,bufferSh)
+FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
+FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
+
+FullBufferSh[i] <-FinalVFSh;FullBufferSo[i] <-FinalVFSo
 }
 # # Calculate the maximum of nearest neighbor distances (in km)
-# buffer <- rep(40,length(multilinetring))
 
 # Create a polygon = MCP + buffer
 #sf_use_s2(T)
@@ -91,18 +93,13 @@ FullBufferSh[i] <-bufferSh;FullBufferSo[i] <-bufferSo
 FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
 FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
 
-plot(FulllinestringsbuffersSo)
-
-FulllinestringsbuffersSo <-st_difference( FulllinestringsbuffersSo,FulllinestringsbuffersSh)
-FinalVFSo<- st_intersection(FulllinestringsbuffersSo,FullFenceShape)
-FinalVFSh<- st_intersection(FulllinestringsbuffersSh,FullFenceShape)
 Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
-st_write(FullFenceShape,paste0(path,"Shapefiles/",Herd,"_",Fence,"_FF.shp"));st_write(FinalVFSo,paste0(path,"Shapefiles/",Herd,"_",Fence,"_Sound.shp"));st_write(FinalVFSh,paste0(path,"Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+st_write(FullFenceShape %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_FF.shp"));st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Sound.shp"));st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
 print(ggplot(data = world) +
     geom_sf() +
     geom_sf(data = FullFenceShape)+
-    geom_sf(data = st_sfc(FinalVFSh,crs = 4326)) +
-    geom_sf(data = st_sfc(FinalVFSo,crs = 4326))+
+    geom_sf(data = FulllinestringsbuffersSh) +
+    geom_sf(data = FulllinestringsbuffersSo)+
 coord_sf(xlim = c(max(endlist[[j]]$longitude)+.01, min(endlist[[j]]$longitude)-.01), ylim = c(min(endlist[[j]]$latitude)-.01, max(endlist[[j]]$latitude)+.01), expand = FALSE))
 #readline(prompt="Press [enter] to continue")
 
