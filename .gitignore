@@ -37,3 +37,6 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Personal Use script
+/Script/Formatting_VF_GPS.Rmd
