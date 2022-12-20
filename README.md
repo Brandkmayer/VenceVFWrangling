@@ -17,7 +17,7 @@ The coordinates should paste into the note in a similar fashion as below.
 This is the outline of the entire shape of the fence. "Of note, the total vertices of the virtual fence appear to have no limit but the active fences are restricted to 16." 
 This shapefile doesn't include the active fences. You'll need tag the active fences manually in the order listed in the "info tab" of the edit fence option. 
 
-![Coordinate Organization](Images/Pastedimage20221213102210.png)
+![Coordinate Organization](Images/Pastedimage20221220153301.png)
 <p style="text-align:center">Note the active fences locations along the fence boundary, noted with "V"s </p>
 <p style="text-align:center"> 🠋 </p>  
 
