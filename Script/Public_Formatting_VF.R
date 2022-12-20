@@ -83,11 +83,8 @@ for (j in 1:length(endlist)) {
     
     FullBufferSh[i] <-FinalVFSh;FullBufferSo[i] <-FinalVFSo
   }
-  # # Calculate the maximum of nearest neighbor distances (in km)
-  
-  # Create a polygon = MCP + buffer
-  #sf_use_s2(T)
-  
+
+
   FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
   FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
   
@@ -99,6 +96,5 @@ for (j in 1:length(endlist)) {
           geom_sf(data = FulllinestringsbuffersSh) +
           geom_sf(data = FulllinestringsbuffersSo)+
           coord_sf(xlim = c(max(endlist[[j]]$longitude)+.01, min(endlist[[j]]$longitude)-.01), ylim = c(min(endlist[[j]]$latitude)-.01, max(endlist[[j]]$latitude)+.01), expand = FALSE))
-  #readline(prompt="Press [enter] to continue")
-  
+
 }
