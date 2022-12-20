@@ -38,5 +38,4 @@ Fence metadata should be added when the on and off date are uploaded to a herd.
 | ---- | ----- | --- | --- | ----- | ----- | --------- | -------- |
 |Small Herd 2022-06-22|Vence Training Day 1|6/28/2022 0:00|6/29/2022 0:00|25|0|Training|In|
 
-## R script to wrangle the 
-The provided link will connect you with script for joining 
+
