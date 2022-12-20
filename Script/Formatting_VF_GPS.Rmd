@@ -17,6 +17,10 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 ```
 
 ```{r}
+
+
+
+
 # Enter base path where folders containing RAW and processed are located
 path <- paste(dirname(path.expand('~')),"/Box/1.Ruyle_lab/1.Project_Data/Virtual Fencing/", sep="")
 
