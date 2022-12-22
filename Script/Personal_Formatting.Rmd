@@ -17,10 +17,6 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 ```
 
 ```{r}
-
-
-
-
 # Enter base path where folders containing RAW and processed are located
 path <- paste(dirname(path.expand('~')),"/Box/1.Ruyle_lab/1.Project_Data/Virtual Fencing/", sep="")
 
@@ -121,6 +117,14 @@ coord_sf(xlim = c(max(endlist[[j]]$longitude)+.01, min(endlist[[j]]$longitude)-.
 
 }
 
+
+```
+Select the virtual herd from VAP and period of observation.  
+```{r}
+VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv")))
+# reticulate::use_python("C:/Users/brand/anaconda3/python.exe")
+# reticulate::use_virtualenv("Vence-API")
+<- read.csv("C:/Users/brand/PycharmProjects/Vence-API/data/2022-12-19_2022-12-21_Vence-message-data.csv")
 
 ```
 
