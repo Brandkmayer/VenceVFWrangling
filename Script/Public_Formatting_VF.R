@@ -8,12 +8,15 @@ library(sf)
 library(smoothr)
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
-filelist <-list.files(paste0(getwd(),"/Data/RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","")
+filelist <-list.files(paste0(getwd(),"/Data/RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE);
+filenames <- stringr::str_replace_all(basename(filelist),".txt","")
 endlist <- stringr::str_replace_all(list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv"),".csv","")
 VAP <-read_csv(paste0(getwd(),"/Data/VenceActivityPeriods.csv"))
-NeedProcessing <- setdiff(VAP$Fence[!is.na(VAP$Off)],filenames);(paste("Listed fences have incomplete `fence off` dates:",VAP$Fence[is.na(VAP$Off)]))
+NeedProcessing <- setdiff(paste0(VAP$Herd[!is.na(VAP$Off)],"_",VAP$Fence[!is.na(VAP$Off)]),endlist);(paste("Listed fences have incomplete `fence off` dates:",VAP$Fence[is.na(VAP$Off)]))
+## need to be processed is a product what is in the RAW folder and what is in the VAP
+# so you can take the herd name and the filename
 if (length(endlist)>0) {
-  filelist <- filelist[grepl(paste(NeedProcessing, collapse = "|"), filenames)]
+  filelist <- filelist[grepl(paste(unique(gsub(".*_","",NeedProcessing)), collapse = "|"), filenames)]
 }
 
 # Load in relevant data associated with the virtual fence
@@ -29,7 +32,8 @@ if (length(filelist)>0) {
         x1 <- x1 %>% left_join(VAPcleanSplit[[h]][f,],by = "Fence")
         if (!is.na(unique(x1$Herd))) {
   write.csv(x1, file = paste0(stringr::str_replace(paste0(getwd(),"/Data/ProcessedFences/",unique(x1$Herd),"_",basename(filelist[i])),".txt",".csv")),row.names = F)
-}}}}}
+        }}}}}
+
 Endlist <- list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv",full.names = T)
 
 # Checking df for errors

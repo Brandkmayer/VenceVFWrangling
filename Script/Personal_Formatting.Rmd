@@ -21,13 +21,14 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 path <- paste(dirname(path.expand('~')),"/Box/1.Ruyle_lab/1.Project_Data/Virtual Fencing/", sep="")
 
 # Identify files that need to be processed
-filelist <-list.files(paste0(path,"RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","")
-endlist <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),pattern = ".csv"),".csv","")
-VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv")))
-NeedProcessing <- setdiff(VAP$Fence[!is.na(VAP$Off)],endlist);(paste("Listed fences have incomplete `fence off` dates:",VAP$Fence[is.na(VAP$Off)]))
+filelist <-list.files(paste0(path,"RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","") # filenames in RAW folder
+endlist <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),pattern = ".csv"),".csv","") # file names of Processed
+VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv"))) # fences with meta data
+NeedProcessing <- setdiff(paste0(VAP$Herd[!is.na(VAP$Off)],"_",VAP$Fence[!is.na(VAP$Off)]),endlist);(paste("Listed fences have incomplete `fence off` dates:",VAP$Fence[is.na(VAP$Off)]))
 
+# adds files that haven't been 
 if (length(NeedProcessing)>0) {
-  filelist <- filelist[grepl(paste(NeedProcessing, collapse = "|"), filenames)]
+  filelist <- filelist[grepl(paste(unique(gsub(".*_","",NeedProcessing)), collapse = "|"), filenames)]
 }
 
 # Load in relevant data associated with the virtual fence
@@ -65,7 +66,7 @@ if (length(NeedProcessing)>0) {
   lapply(function(x) {read.csv(x)})
 }
 
-j<-8
+
 for (j in 1:length(endlist)) {
 test <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
 meta <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,Fence, Herd, On, Off) %>% group_by(Fence, Herd, On, Off) %>% summarise()
