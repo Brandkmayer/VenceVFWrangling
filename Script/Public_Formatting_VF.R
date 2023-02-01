@@ -41,8 +41,7 @@ Endlist <- list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv",f
 #       lapply(function(x) {read.csv(x)}))
 
 Processed <- stringr::str_replace_all(list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv", full.names = F, all.files = TRUE, recursive = TRUE),".csv","")
-Shapefiles <- stringr::str_split(stringr::str_replace_all(list.files(paste0(getwd(),"/Data/Shapefiles"),pattern = ".shp", full.names = F, all.files = TRUE, recursive = TRUE),".shp",""), "_") %>% sapply(., "[[", 2) %>% unique()
-
+Shapefiles <- stringr::str_extract(stringr::str_replace_all(list.files(paste0(path,"Shapefiles"),pattern = ".shp", full.names = F, all.files = TRUE, recursive = TRUE),".shp",""), "[^_]*_[^_]*")%>% unique()
 NeedProcessing <- setdiff(Processed,Shapefiles)
 if (length(NeedProcessing)>0) {
   endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]%>%
@@ -103,16 +102,22 @@ for (j in 1:length(endlist)) {
     FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
     FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
     
-    FullBufferSh[i] <-FinalVFSh;FullBufferSo[i] <-FinalVFSo
+    FullBufferSh[i] <-FinalVFSh%>% st_cast("POLYGON");FullBufferSo[i] <-FinalVFSo%>% st_cast("POLYGON")
   }
 
   Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
-  FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
-  FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
-  
   # st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
-  # st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
-  # st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+  if (length(FullBufferSh)>0) {
+    FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh)
+    FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)
+    # st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
+  }
+  if (length(FullBufferSo)>0) {
+    FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
+    FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
+    # st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+  }
+
   print(ggplot(data = world) +
           geom_sf() +
           geom_sf(data = FullFenceShape)+
