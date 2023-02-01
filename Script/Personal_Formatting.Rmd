@@ -21,34 +21,30 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 path <- paste(dirname(path.expand('~')),"/Box/1.Ruyle_lab/1.Project_Data/Virtual Fencing/", sep="")
 
 # Identify files that need to be processed
-filelist <-list.files(paste0(path,"RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","") # filenames in RAW folder
-endlist <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),pattern = ".csv"),".csv","") # file names of Processed
 VAP <-rbind(read_csv(paste0(path,"VencePCPeriods.csv")),read_csv(paste0(path,"VenceSPPeriods.csv"))) # fences with meta data
-NeedProcessing <- setdiff(paste0(VAP$Herd[!is.na(VAP$Off)],"_",VAP$Fence[!is.na(VAP$Off)]),endlist);(paste("Listed fences have incomplete `fence off` dates:",VAP$Fence[is.na(VAP$Off)]))
+endlist <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),pattern = ".csv"),".csv","") # file names of Processed
+NeedProcessing <- setdiff(paste0(VAP$Herd[!is.na(VAP$Off)],"_",VAP$Fence[!is.na(VAP$Off)]),endlist)
+(paste("Listed fences have incomplete `fence off` dates:",paste0(VAP$Herd[is.na(VAP$Off)],"_",VAP$Fence[is.na(VAP$Off)])))
+filelist <-list.files(paste0(path,"RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE); filenames <- stringr::str_replace_all(basename(filelist),".txt","") # filenames in RAW folder
 
-# adds files that haven't been 
+# Need processing are the full names of the herd/fence assignments. Filenames are the available fences we can use
 if (length(NeedProcessing)>0) {
   filelist <- filelist[grepl(paste(unique(gsub(".*_","",NeedProcessing)), collapse = "|"), filenames)]
 }
 
 # Load in relevant data associated with the virtual fence
 if (length(filelist)>0) {
-  for (i in 1:length(filelist)) {
-  x <- read.table( filelist[i], sep=",", header=TRUE)
-  x$Fence <- stringr::str_remove(basename(filelist[i]),".txt")
   VAPclean <- VAP[!is.na(VAP$Off),] 
   VAPcleanSplit <- VAPclean %>% split(VAPclean$Herd)
   for (h in 1:length(VAPcleanSplit)) {
     for (f in 1:length(unique(VAPcleanSplit[[h]]$Fence))) {
-      x1<- x
-      x1 <- x1 %>% left_join(VAPcleanSplit[[h]][f,],by = "Fence")
-      if (!is.na(unique(x1$Herd))) {
-        write.csv(x1, file = paste0(stringr::str_replace(paste0(path,"ProcessedFences/",unique(x1$Herd),"_",basename(filelist[i])),".txt",".csv")),row.names = F)
-      }
-     }
-    }
-  }
-}
+        for (i in 1:length(filelist)) {
+          x <- read.table( filelist[i], sep=",", header=TRUE)
+          x$Fence <- stringr::str_remove(basename(filelist[i]),".txt")
+          if (VAPcleanSplit[[h]][f,]$Fence == gsub(".txt","",basename(filelist[i]))) {
+            x1 <- x %>% left_join(VAPcleanSplit[[h]][f,],by = "Fence")
+              write.csv(x1, file = paste0(stringr::str_replace(paste0(path,"ProcessedFences/",unique(x1$Herd),"_",basename(filelist[i])),".txt",".csv")),row.names = F)}}}}}
+
 # List of files that can be converted to fence shapefiles
 Endlist <- list.files(paste0(path,"ProcessedFences"),pattern = ".csv",full.names = T)
 
@@ -63,7 +59,7 @@ Shapefiles <- stringr::str_split(stringr::str_replace_all(list.files(paste0(path
 NeedProcessing <- setdiff(Processed,Shapefiles)
 if (length(NeedProcessing)>0) {
   endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]%>%
-  lapply(function(x) {read.csv(x)})
+    lapply(function(x) {read.csv(x)})
 }
 
 
@@ -89,8 +85,9 @@ n <- length(points) - 1
 linestrings <- lapply(X = 1:n, FUN = function(x) {
   # pair <- st_combine(c(points[x], points[x + 1]))
   # line <- st_union(pair)
-  line <- st_union(c(points[x], points[x + 1]))
+  line <- st_combine(c(points[x], points[x + 1]))
   line <- st_cast(line, "LINESTRING") # potential issue with casting points to a line
+  line <- st_union(line)
   return(line)
 
 })
@@ -99,16 +96,15 @@ linestrings <- lapply(X = 1:n, FUN = function(x) {
 multilinetring <- st_multilinestring(do.call("rbind", linestrings))
 multilinetring <- st_sfc(multilinetring,crs = 4326)
 Fullfence[i] <- multilinetring
-plot(multilinetring)
 # one linestringsbuffers object with all buffers
 bufferrawSh <- st_buffer(multilinetring,
                        dist = unique(test$Shock))
 bufferrawSo <- st_buffer(multilinetring,
                        dist = unique(test$Shock)+unique(test$Sound))
 # attmepting to use rgeos and sp
-rgeostrial<- rgeos::gBuffer(as(multilinetring,Class = "Spatial"),width = unique(test$Shock),capStyle="SQUARE")
-rgeostrial <-sp::spTransform( rgeostrial, sp::CRS( "+init=epsg:4326" ) ) 
-plot(st_as_sf(rgeostrial,crs = 4326))
+# rgeostrial<- rgeos::gBuffer(as(multilinetring,Class = "Spatial"),width = unique(test$Shock),capStyle="SQUARE")
+# rgeostrial <-sp::spTransform( rgeostrial, sp::CRS( "+init=epsg:4326" ) ) 
+# plot(st_as_sf(rgeostrial,crs = 4326))
 
 
 # Removed the smothing to see if st_union would change the buffer resolution
@@ -117,20 +113,26 @@ plot(st_as_sf(rgeostrial,crs = 4326))
 bufferSh <- bufferrawSh
 bufferSo <- bufferrawSo
 
+
 buffersSo <-st_difference(bufferSo,bufferSh)
 FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
 FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
-plot(FinalVFSh)
-plot(FinalVFSo)
 FullBufferSh[i] <-FinalVFSh;FullBufferSo[i] <-FinalVFSo
 }
 
-
-FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
-FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
-
 Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
-st_write(FullFenceShape %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_FF.shp"));st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Sound.shp"));st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+st_write(FullFenceShape %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_FF.shp"))
+if (length(FullBufferSh)>0) {
+  FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh)
+  FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)
+  st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+}
+if (length(FinalVFSo)>0) {
+  FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
+  FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
+  st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Sound.shp"))
+}
+
 print(ggplot(data = world) +
     geom_sf() +
     geom_sf(data = FullFenceShape)+

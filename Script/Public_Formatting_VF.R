@@ -2,7 +2,9 @@
 # title: "Formatting Fence GPS points"
 # author: "Brandon Mayer"
 # ---
-
+#------------------------------------ STOP -------------------------------------
+#-------------------------------- Don't Think ----------------------------------
+#---------------------------- Ctrl + Shift + Enter -----------------------------
 library(tidyverse)
 library(sf)
 library(smoothr)
@@ -21,18 +23,16 @@ if (length(endlist)>0) {
 
 # Load in relevant data associated with the virtual fence
 if (length(filelist)>0) {
-  for (i in 1:length(filelist)) {
-    x <- read.table( filelist[i], sep=",", header=TRUE)
-    x$Fence <- stringr::str_remove(basename(filelist[i]),".txt")
-    VAPclean <- VAP[!is.na(VAP$Off),] 
-    VAPcleanSplit <- VAPclean %>% split(VAPclean$Herd)
-    for (h in 1:length(VAPcleanSplit)) {
-      for (f in 1:length(unique(VAPcleanSplit[[h]]$Fence))) {
-        x1<- x
-        x1 <- x1 %>% left_join(VAPcleanSplit[[h]][f,],by = "Fence")
-        if (!is.na(unique(x1$Herd))) {
-  write.csv(x1, file = paste0(stringr::str_replace(paste0(getwd(),"/Data/ProcessedFences/",unique(x1$Herd),"_",basename(filelist[i])),".txt",".csv")),row.names = F)
-        }}}}}
+  VAPclean <- VAP[!is.na(VAP$Off),] 
+  VAPcleanSplit <- VAPclean %>% split(VAPclean$Herd)
+  for (h in 1:length(VAPcleanSplit)) {
+    for (f in 1:length(unique(VAPcleanSplit[[h]]$Fence))) {
+      for (i in 1:length(filelist)) {
+        x <- read.table( filelist[i], sep=",", header=TRUE)
+        x$Fence <- stringr::str_remove(basename(filelist[i]),".txt")
+        if (VAPcleanSplit[[h]][f,]$Fence == gsub(".txt","",basename(filelist[i]))) {
+          x1 <- x %>% left_join(VAPcleanSplit[[h]][f,],by = "Fence")
+          write.csv(x1, file = paste0(stringr::str_replace(paste0(getwd(),"/Data/ProcessedFences/",unique(x1$Herd),"_",basename(filelist[i])),".txt",".csv")),row.names = F)}}}}}
 
 Endlist <- list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv",full.names = T)
 
@@ -106,11 +106,10 @@ for (j in 1:length(endlist)) {
     FullBufferSh[i] <-FinalVFSh;FullBufferSo[i] <-FinalVFSo
   }
 
-
+  Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
   FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh);FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
   FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326);FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
   
-  Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
   # st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
   # st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
   # st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
