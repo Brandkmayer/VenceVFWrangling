@@ -85,13 +85,13 @@ for (j in 1:length(endlist)) {
                              dist = unique(test$Shock)+unique(test$Sound))
     # -------------------------------Test Script--------------------------------
     # Attmepting to use rgeos with sp
-    rgeostrial <-sp::spTransform(as(multilinetring,"Spatial"),  sp::CRS("+init=epsg:4326"))
-    rgeostrialsh<- rgeos::gBuffer(rgeostrial,width = unique(test$Shock),capStyle="SQUARE")
-    rgeostrialso<- rgeos::gBuffer(rgeostrial,width = (unique(test$Shock)+unique(test$Sound)),capStyle="SQUARE")
-    rgst_sh <- st_as_sf(rgeostrialsh,crs = 4326)
-    rgst_so <- st_as_sf(rgeostrialso,crs = 4326)
-
-    rgeos::gDifference(rgeostrialsh,rgeostrialso)
+    # rgeostrial <-sp::spTransform(as(multilinetring,"Spatial"),  sp::CRS("+init=epsg:4326"))
+    # rgeostrialsh<- rgeos::gBuffer(rgeostrial,width = unique(test$Shock),capStyle="SQUARE")
+    # rgeostrialso<- rgeos::gBuffer(rgeostrial,width = (unique(test$Shock)+unique(test$Sound)),capStyle="SQUARE")
+    # rgst_sh <- st_as_sf(rgeostrialsh,crs = 4326)
+    # rgst_so <- st_as_sf(rgeostrialso,crs = 4326)
+    # 
+    # rgeos::gDifference(rgeostrialsh,rgeostrialso)
     
     # Removed buffering to show you the problem with st_buffer
     # bufferSh <- smooth(densify(bufferrawSh, max_distance = 10), method = "ksmooth", smoothness = 18,)
