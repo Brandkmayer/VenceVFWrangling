@@ -78,52 +78,65 @@ for (j in 1:length(endlist)) {
     multilinetring <- st_sfc(multilinetring,crs = 4326)
     Fullfence[i] <- multilinetring
     # one linestringsbuffers object with all buffers
-    bufferrawSh <- st_buffer(multilinetring,
-                             dist = unique(test$Shock))
-    bufferrawSo <- st_buffer(multilinetring,
-                             dist = unique(test$Shock)+unique(test$Sound))
+    # bufferrawSh <- st_buffer(multilinetring,
+    #                          dist = unique(test$Shock))
+    # bufferrawSo <- st_buffer(multilinetring,
+    #                          dist = unique(test$Shock)+unique(test$Sound))
     
     # -------------------------------Test Script--------------------------------
     # Attmepting to use rgeos with sp
-    # rgeostrial <-sp::spTransform(as(multilinetring,"Spatial"),  sp::CRS("+init=epsg:4326"))
-    # rgeostrialsh<- rgeos::gBuffer(rgeostrial,width = unique(test$Shock),capStyle="SQUARE")
-    # rgeostrialso<- rgeos::gBuffer(rgeostrial,width = (unique(test$Shock)+unique(test$Sound)),capStyle="SQUARE")
-    # rgst_sh <- st_as_sf(rgeostrialsh,crs = 4326)
-    # rgst_so <- st_as_sf(rgeostrialso,crs = 4326)
-    # 
-    # rgeos::gDifference(rgeostrialsh,rgeostrialso)
-    
+    rgeostrial <-sp::spTransform(as(multilinetring,"Spatial"),  sp::CRS("+init=epsg:26948"))
+    rgeostrialsh<- rgeos::gBuffer(rgeostrial,width = unique(test$Shock),capStyle="ROUND")
+    rgeostrialso<- rgeos::gBuffer(rgeostrialsh,width = unique(test$Sound),capStyle="ROUND")
+    rgeostrialso<- rgeos::gDifference(rgeostrialso,rgeostrialsh)
+    FinalVFSh <- st_as_sf(rgeos::gIntersection(sp::spTransform(as(FullFenceShape,"Spatial"),  sp::CRS("+init=epsg:26948")),rgeostrialsh),crs = 4326) %>% st_cast("POLYGON")
+    FullBufferSh[i] <-FinalVFSh
+    if (length(rgeostrialso)>0) {
+      FinalVFSo <- st_as_sf(rgeos::gIntersection(sp::spTransform(as(FullFenceShape,"Spatial"),  sp::CRS("+init=epsg:26948")),rgeostrialso),crs = 4326) %>% st_cast("POLYGON")
+      FullBufferSo[i] <-FinalVFSo
+    }
+
     # Removed buffering to show you the problem with st_buffer
     # bufferSh <- smooth(densify(bufferrawSh, max_distance = 10), method = "ksmooth", smoothness = 18,)
     # bufferSo <- smooth(densify(bufferrawSo, max_distance = 10), method = "ksmooth", smoothness = 18,)
-    bufferSh <-bufferrawSh
-    bufferSo <-bufferrawSo 
     
-    buffersSo <-st_difference(bufferSo,bufferSh)
-    FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
-    FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
-    
-    FullBufferSh[i] <-FinalVFSh%>% st_cast("POLYGON");FullBufferSo[i] <-FinalVFSo%>% st_cast("POLYGON")
+    # buffersSo <-st_difference(bufferSo,bufferSh)
+    # FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
+    # FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
+    # 
   }
 
   Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
-  FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
-  FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
-  FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh)
-  FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)
-  # st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
-  # if (length(FullBufferSh)>0) {
-  #   st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
-  # }
-  # if (length(FullBufferSo)>0) {
-  #   st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
-  # }
 
+
+  # st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
+  if (length(FullBufferSh)>0) {
+    FulllinestringsbuffersSh <- st_multipolygon(do.call("rbind", FullBufferSh))
+    FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 26948)
+    # st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
+  }
+
+  if (length(rgeostrialso)>0) {
+    FulllinestringsbuffersSo <- st_multipolygon(do.call("rbind", FullBufferSo))
+    FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 26948)
+    # st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+  }
+  plot(FulllinestringsbuffersSh)
+if (length(rgeostrialso) >0) {
   print(ggplot(data = world) +
           geom_sf() +
           geom_sf(data = FullFenceShape)+
           geom_sf(data = FulllinestringsbuffersSh) +
           geom_sf(data = FulllinestringsbuffersSo)+
           coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
-
+  
+} else {
+  print(ggplot(data = world) +
+          geom_sf() +
+          geom_sf(data = FullFenceShape)+
+          geom_sf(data = FulllinestringsbuffersSh) +
+          coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
+  
+}
+  
 }
