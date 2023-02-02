@@ -4,7 +4,7 @@
 # ---
 #------------------------------------ STOP -------------------------------------
 #-------------------------------- Don't Think ----------------------------------
-#---------------------------- Ctrl + Shift + Enter -----------------------------
+#--------------------------Press Ctrl + Shift + Enter --------------------------
 library(tidyverse)
 library(sf)
 library(smoothr)
@@ -41,7 +41,7 @@ Endlist <- list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv",f
 #       lapply(function(x) {read.csv(x)}))
 
 Processed <- stringr::str_replace_all(list.files(paste0(getwd(),"/Data/ProcessedFences"),pattern = ".csv", full.names = F, all.files = TRUE, recursive = TRUE),".csv","")
-Shapefiles <- stringr::str_extract(stringr::str_replace_all(list.files(paste0(path,"Shapefiles"),pattern = ".shp", full.names = F, all.files = TRUE, recursive = TRUE),".shp",""), "[^_]*_[^_]*")%>% unique()
+Shapefiles <- stringr::str_extract(stringr::str_replace_all(list.files(paste0(getwd(),"/Data/Shapefiles"),pattern = ".shp", full.names = F, all.files = TRUE, recursive = TRUE),".shp",""), "[^_]*_[^_]*")%>% unique()
 NeedProcessing <- setdiff(Processed,Shapefiles)
 if (length(NeedProcessing)>0) {
   endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]%>%
@@ -57,7 +57,7 @@ for (j in 1:length(endlist)) {
   Fullfence <- list();FullBufferSh <- list();FullBufferSo <- list()
   
   FullFenceShape<- st_as_sf(endlist[[j]], coords = c("longitude", "latitude"),
-                            crs = 4326) %>% st_cast("POINT")%>% st_combine()%>% st_cast("POLYGON")
+                            crs = 4326) %>% st_cast("POINT")%>% st_combine()%>% st_cast("POLYGON") %>% st_make_valid()
   
   for (i in 1:length(FencePoints)) {
     
@@ -82,6 +82,7 @@ for (j in 1:length(endlist)) {
                              dist = unique(test$Shock))
     bufferrawSo <- st_buffer(multilinetring,
                              dist = unique(test$Shock)+unique(test$Sound))
+    
     # -------------------------------Test Script--------------------------------
     # Attmepting to use rgeos with sp
     # rgeostrial <-sp::spTransform(as(multilinetring,"Spatial"),  sp::CRS("+init=epsg:4326"))
@@ -96,7 +97,7 @@ for (j in 1:length(endlist)) {
     # bufferSh <- smooth(densify(bufferrawSh, max_distance = 10), method = "ksmooth", smoothness = 18,)
     # bufferSo <- smooth(densify(bufferrawSo, max_distance = 10), method = "ksmooth", smoothness = 18,)
     bufferSh <-bufferrawSh
-    bufferSo <-bufferrawSo
+    bufferSo <-bufferrawSo 
     
     buffersSo <-st_difference(bufferSo,bufferSh)
     FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
@@ -106,17 +107,17 @@ for (j in 1:length(endlist)) {
   }
 
   Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
+  FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
+  FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
+  FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh)
+  FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)
   # st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
-  if (length(FullBufferSh)>0) {
-    FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh)
-    FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)
-    # st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
-  }
-  if (length(FullBufferSo)>0) {
-    FulllinestringsbuffersSo <- st_multipolygon(FullBufferSo)
-    FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 4326)
-    # st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
-  }
+  # if (length(FullBufferSh)>0) {
+  #   st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
+  # }
+  # if (length(FullBufferSo)>0) {
+  #   st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+  # }
 
   print(ggplot(data = world) +
           geom_sf() +

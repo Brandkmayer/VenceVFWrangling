@@ -45,8 +45,6 @@ if (length(filelist)>0) {
             x1 <- x %>% left_join(VAPcleanSplit[[h]][f,],by = "Fence")
               write.csv(x1, file = paste0(stringr::str_replace(paste0(path,"ProcessedFences/",unique(x1$Herd),"_",basename(filelist[i])),".txt",".csv")),row.names = F)}}}}}
 
-# List of files that can be converted to fence shapefiles
-Endlist <- list.files(paste0(path,"ProcessedFences"),pattern = ".csv",full.names = T)
 
 # (list.files(paste0(path,"ProcessedFences"),pattern = ".csv", full.names = T, all.files = TRUE, recursive = TRUE) %>%
 #   lapply(function(x) {read.csv(x)}))
@@ -57,11 +55,11 @@ Processed <- stringr::str_replace_all(list.files(paste0(path,"ProcessedFences"),
 Shapefiles <- stringr::str_extract(stringr::str_replace_all(list.files(paste0(path,"Shapefiles"),pattern = ".shp", full.names = F, all.files = TRUE, recursive = TRUE),".shp",""), "[^_]*_[^_]*")%>% unique()
 
 NeedProcessing <- setdiff(Processed,Shapefiles)
-if (length(NeedProcessing)>0) {
-  endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]%>%
-    lapply(function(x) {read.csv(x)})
-}
 
+if (length(NeedProcessing)>0) {
+  endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]
+}
+endlist <- endlist %>%lapply(function(x) {read.csv(x)})
 for (j in 1:length(endlist)) {
 test <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
 meta <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,Fence, Herd, On, Off) %>% group_by(Fence, Herd, On, Off) %>% summarise()
@@ -118,12 +116,12 @@ FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
 FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
 FullBufferSh[i] <-FinalVFSh%>% st_cast("POLYGON") ;FullBufferSo[i] <-FinalVFSo%>% st_cast("POLYGON")
 }
-plot(FinalVFSo)
+
 Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
 st_write(FullFenceShape %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_FF.shp"))
 if (length(FullBufferSh)>0) {
   FulllinestringsbuffersSh <- st_multipolygon(FullBufferSh)
-  FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)
+  FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 4326)# possibly use CRS = 26948?
   st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(path,"Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
 }
 if (length(FullBufferSo)>0) {
