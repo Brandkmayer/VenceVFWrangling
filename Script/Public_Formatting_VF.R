@@ -103,26 +103,24 @@ for (j in 1:length(endlist)) {
     # buffersSo <-st_difference(bufferSo,bufferSh)
     # FinalVFSo<- st_intersection(buffersSo,FullFenceShape)
     # FinalVFSh<- st_intersection(bufferSh,FullFenceShape)
-    # 
   }
 
   Herd <- unique(endlist[[j]]$Herd);Fence<-unique(endlist[[j]]$Fence)
 
-
-  # st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
+  st_write(FullFenceShape %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_FF.shp"));
   if (length(FullBufferSh)>0) {
     FulllinestringsbuffersSh <- st_multipolygon(do.call("rbind", FullBufferSh))
     FulllinestringsbuffersSh <- st_sfc(FulllinestringsbuffersSh,crs = 26948)
-    # st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"));
+    st_write(FulllinestringsbuffersSh %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"));
   }
 
   if (length(rgeostrialso)>0) {
     FulllinestringsbuffersSo <- st_multipolygon(do.call("rbind", FullBufferSo))
     FulllinestringsbuffersSo <- st_sfc(FulllinestringsbuffersSo,crs = 26948)
-    # st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Shock.shp"))
+    st_write(FulllinestringsbuffersSo %>% merge(meta),paste0(getwd(),"/Data/Shapefiles/",Herd,"_",Fence,"_Sound.shp"))
   }
-  plot(FulllinestringsbuffersSh)
-if (length(rgeostrialso) >0) {
+
+  if (length(rgeostrialso) >0) {
   print(ggplot(data = world) +
           geom_sf() +
           geom_sf(data = FullFenceShape)+
