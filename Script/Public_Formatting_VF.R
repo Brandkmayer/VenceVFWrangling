@@ -8,7 +8,16 @@
 library(tidyverse)
 library(sf)
 library(smoothr)
+library(rnaturalearth)
 world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Ensures destinations for processed data exist
+if (!dir.exists(paste0(getwd(), "/Data/ProcessedFences"))) {
+  dir.create(paste0(getwd(), "/Data/ProcessedFences"))
+}
+if (!dir.exists(paste0(getwd(), "/Data/Shapefiles"))) {
+  dir.create(paste0(getwd(), "/Data/Shapefiles"))
+}
 
 filelist <-list.files(paste0(getwd(),"/Data/RAWFenceFolder"),pattern = ".txt", full.names = T, all.files = TRUE, recursive = TRUE);
 filenames <- stringr::str_replace_all(basename(filelist),".txt","")
@@ -128,13 +137,13 @@ for (j in 1:length(endlist)) {
           geom_sf(data = FulllinestringsbuffersSo)+
           coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
   
-} else {
-  print(ggplot(data = world) +
-          geom_sf() +
-          geom_sf(data = FullFenceShape)+
-          geom_sf(data = FulllinestringsbuffersSh) +
-          coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
-  
-}
+  } else {
+    print(ggplot(data = world) +
+            geom_sf() +
+            geom_sf(data = FullFenceShape)+
+            geom_sf(data = FulllinestringsbuffersSh) +
+            coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
+    
+  }
   
 }
