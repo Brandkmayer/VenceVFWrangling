@@ -9,7 +9,6 @@ library(tidyverse)
 library(sf)
 library(smoothr)
 library(rnaturalearth)
-library(rnaturalearthdata)
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
 # Ensures destinations for processed data exist
@@ -138,13 +137,13 @@ for (j in 1:length(endlist)) {
           geom_sf(data = FulllinestringsbuffersSo)+
           coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
   
-} else {
-  print(ggplot(data = world) +
-          geom_sf() +
-          geom_sf(data = FullFenceShape)+
-          geom_sf(data = FulllinestringsbuffersSh) +
-          coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
-  
-}
+  } else {
+    print(ggplot(data = world) +
+            geom_sf() +
+            geom_sf(data = FullFenceShape)+
+            geom_sf(data = FulllinestringsbuffersSh) +
+            coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
+    
+  }
   
 }
