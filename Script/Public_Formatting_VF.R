@@ -56,18 +56,22 @@ if (length(NeedProcessing)>0) {
   endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]%>%
     lapply(function(x) {read.csv(x)})
 }
- 
 for (j in 1:length(endlist)) {
-  test <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,latitude, longitude, Shock, Sound) %>% group_by(Fgroup)%>% mutate(points = seq(1:length(latitude)))
+
+  test <- endlist[[j]] %>%
+    mutate(collection = cumsum(!is.na(Fgroup) & (is.na(lag(Fgroup)) | lag(Fgroup) != Fgroup)))%>% filter(!is.na(Fgroup))%>% 
+    select(point, Fgroup,collection,latitude, longitude, Shock, Sound) %>%
+    group_by(Fgroup) %>%
+    mutate(value = ifelse(collection == 1, point + max(point), point)) %>% 
+    arrange(value) 
   meta <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,Fence, Herd, On, Off) %>% group_by(Fence, Herd, On, Off) %>% summarise()
   FencePoints<- st_as_sf(test, coords = c("longitude", "latitude"), 
                          crs = 4326)
-  FencePoints <- FencePoints%>% group_by(Fgroup) %>% group_split()
+  FencePoints <- FencePoints %>% group_by(Fgroup) %>% group_split()
   Fullfence <- list();FullBufferSh <- list();FullBufferSo <- list()
   
   FullFenceShape<- st_as_sf(endlist[[j]], coords = c("longitude", "latitude"),
                             crs = 4326) %>% st_cast("POINT")%>% st_combine()%>% st_cast("POLYGON") %>% st_make_valid()
-  
   for (i in 1:length(FencePoints)) {
     
     # lapply(list, function)
@@ -147,3 +151,4 @@ for (j in 1:length(endlist)) {
   }
   
 }
+

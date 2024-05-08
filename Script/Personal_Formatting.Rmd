@@ -57,7 +57,7 @@ Shapefiles <- stringr::str_extract(stringr::str_replace_all(list.files(paste0(pa
 NeedProcessing <- setdiff(Processed,Shapefiles)
 
 if (length(NeedProcessing)>0) {
-  endlist <- Endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]
+  endlist <- endlist[grepl(paste(NeedProcessing, collapse = "|"), Processed)]
 }
 endlist <- endlist %>%lapply(function(x) {read.csv(x)})
 for (j in 1:length(endlist)) {
