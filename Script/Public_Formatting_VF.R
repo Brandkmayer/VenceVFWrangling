@@ -62,7 +62,8 @@ for (j in 1:length(endlist)) {
     mutate(collection = cumsum(!is.na(Fgroup) & (is.na(lag(Fgroup)) | lag(Fgroup) != Fgroup)))%>% filter(!is.na(Fgroup))%>% 
     select(point, Fgroup,collection,latitude, longitude, Shock, Sound) %>%
     group_by(Fgroup) %>%
-    mutate(value = ifelse(collection == 1, point + max(point), point)) %>% 
+    mutate(value = case_when(max(collection) > 1 ~ ifelse(collection == 1, point + max(point), point),
+                              TRUE ~ point)) %>% 
     arrange(value) 
   meta <- endlist[[j]] %>% filter(!is.na(Fgroup))%>% select(Fgroup,Fence, Herd, On, Off) %>% group_by(Fence, Herd, On, Off) %>% summarise()
   FencePoints<- st_as_sf(test, coords = c("longitude", "latitude"), 
@@ -139,14 +140,14 @@ for (j in 1:length(endlist)) {
           geom_sf(data = FullFenceShape)+
           geom_sf(data = FulllinestringsbuffersSh) +
           geom_sf(data = FulllinestringsbuffersSo)+
-          coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
+          coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE)) +ggtitle(unique(Fence))
   
   } else {
     print(ggplot(data = world) +
             geom_sf() +
             geom_sf(data = FullFenceShape)+
             geom_sf(data = FulllinestringsbuffersSh) +
-            coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE))
+            coord_sf(xlim = c(max(endlist[[j]]$longitude)+.001, min(endlist[[j]]$longitude)-.001), ylim = c(min(endlist[[j]]$latitude)-.001, max(endlist[[j]]$latitude)+.001), expand = FALSE)) +ggtitle(unique(Fence))
     
   }
   
