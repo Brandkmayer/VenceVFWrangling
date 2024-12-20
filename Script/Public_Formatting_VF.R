@@ -58,7 +58,7 @@ if (length(NeedProcessing)>0) {
 }
 for (j in 1:length(endlist)) {
 
-  test <- endlist[[j]] %>%
+  test <- endlist[[j]] %>% mutate(Fgroup = as.numeric(Fgroup)) %>% 
     mutate(collection = cumsum(!is.na(Fgroup) & (is.na(lag(Fgroup)) | lag(Fgroup) != Fgroup)))%>% filter(!is.na(Fgroup))%>% 
     select(point, Fgroup,collection,latitude, longitude, Shock, Sound) %>%
     group_by(Fgroup) %>%
